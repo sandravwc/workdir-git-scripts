@@ -1,0 +1,38 @@
+#!/bin/bash
+IFS=$'\n'
+
+for line in $(curl -ks -H "`cat CSFR`" -b "`cat ticket`" -XGET https://62.116.163.165:8006/api2/json/config/ruledb/who | jq -rj '.data[] | .id,",",.name,"\n"')
+do
+	case $line in 
+		*.blacklist)
+			blacklists+=($line)
+			;;
+		*.identity)
+			identities+=($line)
+			;;
+		*.whitelist)
+			whitelists+=($line)
+			;;
+	esac
+done
+
+for ((i=0;i<${#identities[@]};i++))
+do
+	name=$(awk -F "," '{print $2}' <(echo ${identities[i]} | sed 's#.identity##g'))	
+	
+        for whiteid in $(curl -ks -H "`cat CSFR`" -b "`cat ticket`" -d "name=${name}.whitelist" -d "priority=70" -d "active=1" -d "direction=0" -XPOST https://62.116.163.165:8006/api2/json/config/ruledb/rules | jq .data)
+	do
+		curl -ks -H "`cat CSFR`" -b "`cat ticket`" -d "ogroup=$(awk -F "," '{print $1}' <(echo ${whitelists[i]}))" -XPOST https://62.116.163.165:8006/api2/json/config/ruledb/rules/$whiteid/from
+		curl -ks -H "`cat CSFR`" -b "`cat ticket`" -d "ogroup=$(awk -F "," '{print $1}' <(echo ${identities[i]}))" -XPOST https://62.116.163.165:8006/api2/json/config/ruledb/rules/$whiteid/to
+		curl -ks -H "`cat CSFR`" -b "`cat ticket`" -d "ogroup=17" -XPOST https://62.116.163.165:8006/api2/json/config/ruledb/rules/$whiteid/action
+	done		
+
+	for blackid in $(curl -ks -H "`cat CSFR`" -b "`cat ticket`" -d "name=${name}.blacklist" -d "priority=75" -d "active=1" -d "direction=0" -XPOST https://62.116.163.165:8006/api2/json/config/ruledb/rules | jq .data)
+	do
+
+		curl -ks -H "`cat CSFR`" -b "`cat ticket`" -d "ogroup=$(awk -F "," '{print $1}' <(echo ${blacklists[i]}))" -XPOST https://62.116.163.165:8006/api2/json/config/ruledb/rules/$blackid/from
+		curl -ks -H "`cat CSFR`" -b "`cat ticket`" -d "ogroup=$(awk -F "," '{print $1}' <(echo ${identities[i]}))" -XPOST https://62.116.163.165:8006/api2/json/config/ruledb/rules/$blackid/to
+		curl -ks -H "`cat CSFR`" -b "`cat ticket`" -d "ogroup=18" -XPOST https://62.116.163.165:8006/api2/json/config/ruledb/rules/$blackid/action
+	done
+
+done

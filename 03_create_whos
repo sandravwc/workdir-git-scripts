@@ -1,0 +1,13 @@
+#!/bin/bash
+IFS=$'\n'
+query="select id, user_name from maia.maia_users where id not in (1, 8)"
+data+=($(echo $query | mysql --skip-column-names | awk '{print $2}' | grep "^@"))
+
+for ((j=0;j<$((${#data[@]}));j++))
+do
+	curl -ks -H "`cat CSFR`" -b "`cat ticket`" -d "name=$(echo ${data[j]}.whitelist)" -XPOST https://62.116.163.165:8006/api2/json/config/ruledb/who && echo ${data[j]}.whitelist
+	
+	curl -ks -H "`cat CSFR`" -b "`cat ticket`" -d "name=$(echo ${data[j]}.blacklist)" -XPOST https://62.116.163.165:8006/api2/json/config/ruledb/who && echo ${data[j]}.blacklist
+	
+	curl -ks -H "`cat CSFR`" -b "`cat ticket`" -d "name=$(echo ${data[j]}.identity)" -XPOST https://62.116.163.165:8006/api2/json/config/ruledb/who | jq .data | while read line; do curl -ks -H "`cat CSFR`" -b "`cat ticket`" -d "domain=$(echo ${data[j]} | awk -F "@" '{print $2}')" -XPOST https://62.116.163.165:8006/api2/json/config/ruledb/who/$line/domain; done && echo ${data[j]}.identity
+done

@@ -1,0 +1,52 @@
+#!/bin/bash
+
+white+=($(echo "select distinct user_name from maia.mailaddr as a join maia.wblist on a.id = maia.wblist.sid join maia.maia_users on maia.maia_users.id = maia.wblist.rid where maia.maia_users.id not in (1, 8) and wb='W'" | mysql --skip-column-names))
+black+=($(echo "select distinct user_name from maia.mailaddr as a join maia.wblist on a.id = maia.wblist.sid join maia.maia_users on maia.maia_users.id = maia.wblist.rid where maia.maia_users.id not in (1, 8) and wb='W'" | mysql --skip-column-names))
+
+load_white () {
+
+	for ((i=0;i<${#white[@]};i++))
+	do
+		echo ${white[i]} 
+	done
+}
+
+load_black () {
+
+	for ((i=0;i<${#black[@]};i++))
+	do
+		echo ${black[i]} 
+	done
+}
+
+whitos+=($(egrep "$(sed ':a;N;$!ba;s/\n/|/g' <(load_black))" <(curl -ks -H "`cat CSFR`" -b "`cat ticket`" -XGET https://62.116.163.165:8006/api2/json/config/ruledb/who | jq -jr '.data[] | select (.name | contains(".whitelist")) | .id,",",.name,"\n"')))
+blacko+=($(egrep "$(sed ':a;N;$!ba;s/\n/|/g' <(load_black))" <(curl -ks -H "`cat CSFR`" -b "`cat ticket`" -XGET https://62.116.163.165:8006/api2/json/config/ruledb/who | jq -jr '.data[] | select (.name | contains(".blacklist")) | .id,",",.name,"\n"')))
+
+load_whitos () {
+	for ((i=0;i<${#whitos[@]};i++))
+	do
+		echo ${whitos[i]}
+	done
+}
+
+load_blacko () {
+	for ((i=0;i<${#blacko[@]};i++))
+	do
+		echo ${blacko[i]}
+	done
+}
+for id in $(cat <(load_whitos) | awk -F "," '{print $1}')
+do
+	for line in $(curl -ks -H "`cat CSFR`" -b "`cat ticket`" -XGET https://62.116.163.165:8006/api2/json/config/ruledb/who/$id/objects | jq -rj '.data[]|.id,"\n"')
+	do
+		curl -ks -H "`cat CSFR`" -b "`cat ticket`" -XDELETE https://62.116.163.165:8006/api2/json/config/ruledb/who/$id/objects/$line | jq -rj '.[] | "'$(echo $id)'","\n"' 
+	done
+done
+
+for id in $(cat <(load_blacko) | awk -F "," '{print $1}')
+do
+	for line in $(curl -ks -H "`cat CSFR`" -b "`cat ticket`" -XGET https://62.116.163.165:8006/api2/json/config/ruledb/who/$id/objects | jq -rj '.data[]|.id,"\n"')
+	do
+		curl -ks -H "`cat CSFR`" -b "`cat ticket`" -XDELETE https://62.116.163.165:8006/api2/json/config/ruledb/who/$id/objects/$line | jq -rj '.[] | "'$(echo $id)'","\n"' 
+	done
+done
