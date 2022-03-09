@@ -1,26 +1,57 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-white+=($(echo "select distinct user_name from maia.mailaddr as a join maia.wblist on a.id = maia.wblist.sid join maia.maia_users on maia.maia_users.id = maia.wblist.rid where maia.maia_users.id not in (1, 8) and wb='W'" | mysql --skip-column-names))
-black+=($(echo "select distinct user_name from maia.mailaddr as a join maia.wblist on a.id = maia.wblist.sid join maia.maia_users on maia.maia_users.id = maia.wblist.rid where maia.maia_users.id not in (1, 8) and wb='B'" | mysql --skip-column-names))
+query_w="select distinct user_name from maia.mailaddr as a \
+    join maia.wblist on a.id = maia.wblist.sid \
+	join maia.maia_users on maia.maia_users.id = maia.wblist.rid \
+	where maia.maia_users.id not in (1, 8) and wb='W'"
+
+query_b="select distinct user_name from maia.mailaddr as a \
+    join maia.wblist on a.id = maia.wblist.sid \
+	join maia.maia_users on maia.maia_users.id = maia.wblist.rid \
+	where maia.maia_users.id not in (1, 8) and wb='B'"
+
+# shellcheck disable=2207
+white=($(printf "%s" "${query_w}" | mysql -N))
+
+# shellcheck disable=2207
+black=($(printf "%s" "${query_b}" | mysql -N))
 
 load_white () {
-
 	for ((i=0;i<${#white[@]};i++))
 	do
-		echo ${white[i]} 
+		echo "${white[i]}"
 	done
 }
 
 load_black () {
 	for ((i=0;i<${#black[@]};i++))
 	do
-		echo ${black[i]}
+		echo "${black[i]}"
 	done
 }
+# shellcheck disable=2207
+whitos+=($(grep -E "$(sed ':a;N;$!ba;s/\n/|/g' \
+    <(load_white))" \
+	<(curl -ks \
+	    -H "$(cat CSFR)" \
+		-b "$(cat ticket)" \
+		-XGET https://62.116.163.165:8006/api2/json/config/ruledb/who \
+		    | jq -jr '.data[] \
+			    | select (.name | contains(".whitelist")) \
+				| .id,",",.name,"\n"')\
+))
+# shellcheck disable=2207
+blacko+=($(grep -E "$(sed ':a;N;$!ba;s/\n/|/g' \
+    <(load_black))" \
+	<(curl -ks \
+	    -H "$(cat CSFR)" \
+	    -b "$(cat ticket)" \
+		-XGET https://62.116.163.165:8006/api2/json/config/ruledb/who \
+		    | jq -jr '.data[] \
+			    | select (.name | contains(".blacklist")) \
+				| .id,",",.name,"\n"')\
+))
 
-
-whitos+=($(egrep "$(sed ':a;N;$!ba;s/\n/|/g' <(load_white))" <(curl -ks -H "`cat CSFR`" -b "`cat ticket`" -XGET https://62.116.163.165:8006/api2/json/config/ruledb/who | jq -jr '.data[] | select (.name | contains(".whitelist")) | .id,",",.name,"\n"')))
-blacko+=($(egrep "$(sed ':a;N;$!ba;s/\n/|/g' <(load_black))" <(curl -ks -H "`cat CSFR`" -b "`cat ticket`" -XGET https://62.116.163.165:8006/api2/json/config/ruledb/who | jq -jr '.data[] | select (.name | contains(".blacklist")) | .id,",",.name,"\n"')))
 
 load_whitos () {
 	for ((i=0;i<${#whitos[@]};i++))
