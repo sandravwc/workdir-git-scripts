@@ -1,0 +1,28 @@
+#!/bin/bash
+
+while getopts :hp: aaa
+do
+	case $aaa in
+		h)	HELP=1;;
+		p)	p=$OPTARG && PRINT=1;;
+		?)	echo "lel" && exit 2;;
+	esac
+done
+
+set -o noglob
+declare "yikes"
+for ((i=33;i<48;i++)); do yikes+=($(printf "\\$(printf %03o "$i")")); done 
+for ((i=91;i<97;i++)); do yikes+=($(printf "\\$(printf %03o "$i")")); done 
+for ((i=123;i<127;i++)); do yikes+=($(printf "\\$(printf %03o "$i")")); done
+
+	printall () {
+	for ((i=0;i<${#yikes[@]};i++))
+	do
+		echo -n "$i)  "
+		echo "${yikes[i]}"
+	done
+}
+
+
+[[ HELP -eq 1 ]] && printall
+[[ PRINT -eq 1 ]] && echo "${yikes[$p]}"

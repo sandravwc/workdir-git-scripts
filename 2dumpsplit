@@ -1,0 +1,98 @@
+#!/bin/bash
+
+DUMP=$1
+IFS=$'\n'
+DAB=$2
+LN () {
+	eval $1+=\("$(echo $a | awk -F ":" '{print $1}')"\)
+}
+NAME () {
+	eval $1+=\("$(echo "$a \n" | awk -F \` '{print $2}' | sed "s#\`##g")"\)
+}
+
+split_dbs () {
+for ((j=0;j<$((${#dbs[@]}-1));j++))
+do
+        echo $j')' splitting ${db_names[j]}...
+ 	dabs+=("$(echo "sed -n ${dbs[j]},$((${dbs[j+1]}-1))p $DUMP : ${db_names[j]}")")
+	for ((i=0;i<$((${#tables[@]}-1));i++))
+	do
+		if [[ ${tables[i]} -gt ${dbs[j]} ]] # && [[ ${tables[i+1]} -le ${dbs[j+1]} ]] 
+		then
+			echo $i
+			tabs+=("$(echo "sed -n ${tables[i]},$((${tables[i+1]}-1))p $DUMP : ${db_names[j]}.${table_names[i]}")") 
+		fi
+	done
+done
+}
+
+dabs () {
+for i in ${dabs[@]}
+do 
+	echo $i
+done
+}
+tabs () {
+for i in ${tabs[@]}
+do
+	echo $i
+done
+}
+
+leeel () {
+eval $(echo "$(echo ${dabs[3]} | awk -F ":" '{print $1}') > $(echo ${dabs[3]} | awk -F ":" '{print $2}')")
+}
+
+for a in `egrep -n "^-- Current Database|^-- Table structure" $DUMP`
+do
+case $a in
+	*Current\ Database*)	
+	LN dbs
+	NAME db_names
+	;;
+	*Table\ structure*)
+	LN tables
+	NAME table_names
+	;;
+esac
+done
+dbs+=("$(wc -l $DUMP | awk '{print $1}')")
+tables+=("$(wc -l $DUMP | awk '{print $1}')")
+
+tabs_in_dabs () {
+for i in ${tabs[@]}
+do
+	[[ ! -z $(echo `echo $i | awk '{print $NF}' | awk -F "." '{print $1}'` | grep `echo ${dabs[$DAB]} | awk '{print $NF}'`) ]] && echo $i
+done
+}
+
+
+
+
+
+#split_dbs
+#dabs
+#tabs_in_dabs
+#tabs
+
+debug () {
+	echo ${dbs[@]} 		dbs
+	echo ${db_names[@]} 	db_names
+	echo ${tables[@]}	tables
+	echo ${table_names[@]}	table_names
+	echo ${dabs[@]}		dabs
+	echo ${tabs[@]}		tabs
+}
+debug_val () {
+	echo ${#dbs[@]} 	dbs_val
+	echo ${#db_names[@]} 	db_names_val
+	echo ${#tables[@]} 	tables_val
+	echo ${#table_names[@]} table_name_val
+	echo ${#dabs[@]}	dabs_val
+	echo ${#tabs[@]}	tabs_val
+	echo ${!tabs[*]} 	tabs_!
+	echo ${!dabs[*]}	dabs_!
+	echo ${!db_names[@]}	db_names!
+}
+#[[ $2 -eq 1 ]] && debug
+#[[ $3 -eq 1 ]] && debug_val

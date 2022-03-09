@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+ROTA=("$@")
+crit_kaese=102
+crit_wurst=101
+crit_obst=100
+
+for ((i=0;i<${#ROTA[@]};i++))
+do
+	 eval echo '$crit_'"${ROTA[i]}"
+done

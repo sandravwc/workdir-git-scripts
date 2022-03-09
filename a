@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+var=$(echo deine mutter)
+echo $var
