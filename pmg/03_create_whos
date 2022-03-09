@@ -27,12 +27,12 @@ do
 	    | jq .data \
 	    | while read line 
 	    do 
-	        curl -ks \
-		-H "`cat CSFR`" \
-		-b "`cat ticket`" \
-		-d "domain=$(echo ${data[j]} \
+                curl -ks \
+                -H "`cat CSFR`" \
+                -b "`cat ticket`" \
+                -d "domain=$(echo ${data[j]} \
 	            | awk -F "@" '{print $2}')" \
-		-XPOST https://62.116.163.165:8006/api2/json/config/ruledb/who/$line/domain
+                -XPOST https://62.116.163.165:8006/api2/json/config/ruledb/who/$line/domain
 	    done
 	    echo ${data[j]}.identity
 done
