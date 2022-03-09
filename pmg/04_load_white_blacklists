@@ -30,28 +30,21 @@ load_black () {
 	done
 }
 # shellcheck disable=2207
-whitos+=($(grep -E "$(sed ':a;N;$!ba;s/\n/|/g' \
-    <(load_white))" \
+dodidadudadi () {
+eval "$1"+="($(grep -E "$(sed ':a;N;$!ba;s/\n/|/g' \
+    <(load_"${2}"))" \
 	<(curl -ks \
 	    -H "$(cat CSFR)" \
 		-b "$(cat ticket)" \
 		-XGET https://62.116.163.165:8006/api2/json/config/ruledb/who \
 		    | jq -jr '.data[] \
-			    | select (.name | contains(".whitelist")) \
+			    | select (.name | contains(".${3}")) \
 				| .id,",",.name,"\n"')\
-))
-# shellcheck disable=2207
-blacko+=($(grep -E "$(sed ':a;N;$!ba;s/\n/|/g' \
-    <(load_black))" \
-	<(curl -ks \
-	    -H "$(cat CSFR)" \
-	    -b "$(cat ticket)" \
-		-XGET https://62.116.163.165:8006/api2/json/config/ruledb/who \
-		    | jq -jr '.data[] \
-			    | select (.name | contains(".blacklist")) \
-				| .id,",",.name,"\n"')\
-))
+))"
+}
 
+dodidadudadi blacko black blacklist
+dodidadudadi whitos white whitelist
 
 load_whitos () {
 	for ((i=0;i<${#whitos[@]};i++))
