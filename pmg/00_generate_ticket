@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 curl -ks -d "username=root@pam&password=Iut8vCQCW5NL05k9" https://62.116.163.165:8006/api2/json/access/ticket > output.ticket
 jq '.[] | .ticket' output.ticket | sed  -e 's#"##g' -e 's/^/PMGAuthCookie=/' > ticket
