@@ -47,19 +47,20 @@ dodidadudadi blacko black blacklist
 dodidadudadi whitos white whitelist
 
 load_whitos () {
+	# shellcheck disable=2154
 	for ((i=0;i<${#whitos[@]};i++))
 	do
 		id=$(echo ${whitos[i]} | awk -F "," '{print $1}')
 		user=$(echo ${whitos[i]} | awk -F "," '{print $2}' | sed 's#.whitelist##g')
 		
-		for addr in $(echo "select email from maia.mailaddr as a join maia.wblist on a.id = maia.wblist.sid join maia.maia_users on maia.maia_users.id = maia.wblist.rid where wb='W' and user_name='$user';" | mysql --skip-column-names)
+		for addr in $(echo "select email from maia.mailaddr as a join maia.wblist on a.id = maia.wblist.sid join maia.maia_users on maia.maia_users.id = maia.wblist.rid where wb='W' and user_name='$user';" | mysql -N)
 		do
 			if [ -z $(grep ^@ <(echo $addr)) ]
 			then
-				curl -ks -H "`cat CSFR`" -b "`cat ticket`" -d "email=$addr" -XPOST https://62.116.163.165:8006/api2/json/config/ruledb/who/$id/email && echo -n ${whitos[i]} && echo -n " " && echo $addr
+				curl -ks -H "$(cat CSFR)" -b "$(cat ticket)" -d "email=$addr" -XPOST https://62.116.163.165:8006/api2/json/config/ruledb/who/$id/email && echo -n ${whitos[i]} && echo -n " " && echo $addr
 			elif [ ! -z $(grep ^@ <(echo $addr)) ]
 			then
-				curl -ks -H "`cat CSFR`" -b "`cat ticket`" -d "domain=$( echo $addr | sed 's/^@//')" -XPOST https://62.116.163.165:8006/api2/json/config/ruledb/who/$id/domain && echo -n ${whitos[i]} && echo -n " " && echo $addr
+				curl -ks -H "$(cat CSFR)" -b "$(cat ticket)" -d "domain=$(echo "$addr" | sed 's/^@//')" -XPOST https://62.116.163.165:8006/api2/json/config/ruledb/who/$id/domain && echo -n ${whitos[i]} && echo -n " " && echo $addr
 			fi
 
 		done
@@ -73,7 +74,7 @@ load_blacko () {
 		id=$(echo ${blacko[i]} | awk -F "," '{print $1}')
 		user=$(echo ${blacko[i]} | awk -F "," '{print $2}' | sed 's#.blacklist##g')
 
-		for addr in $(echo "select email from maia.mailaddr as a join maia.wblist on a.id = maia.wblist.sid join maia.maia_users on maia.maia_users.id = maia.wblist.rid where wb='B' and user_name='$user';" | mysql --skip-column-names)
+		for addr in $(echo "select email from maia.mailaddr as a join maia.wblist on a.id = maia.wblist.sid join maia.maia_users on maia.maia_users.id = maia.wblist.rid where wb='B' and user_name='$user';" | mysql -N)
 		do
 			if [ -z $(grep ^@ <(echo $addr)) ]
 			then
